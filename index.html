@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dice Roller</title>
+<script src="https://unpkg.com/matrix-widget-api@1.9.0/dist/api.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1a1520;
+    --surface: #241e2e;
+    --border: #3a2f4a;
+    --accent: #c4a35a;
+    --accent-glow: #e8c96880;
+    --text: #e8e0f0;
+    --text-dim: #8a7e96;
+    --red: #c45a5a;
+    --green: #5ac47a;
+  }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, #2a1f3a 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 50%, #1f2a3a 0%, transparent 60%);
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 12px;
+    text-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .roller {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .input-row { display: flex; gap: 8px; }
+
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  input::placeholder { color: var(--text-dim); font-size: 0.85rem; }
+
+  button.roll-btn {
+    background: linear-gradient(135deg, var(--accent), #a8883a);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    text-transform: uppercase;
+  }
+
+  button.roll-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px var(--accent-glow);
+  }
+
+  button.roll-btn:active { transform: translateY(1px); }
+
+  .quick-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .quick-btns button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .quick-btns button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #2a2235;
+  }
+
+  .result-area {
+    margin-top: 4px;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .result-total {
+    font-family: 'Cinzel', serif;
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: var(--accent);
+    text-shadow: 0 0 24px var(--accent-glow);
+    line-height: 1;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .result-total.show { opacity: 1; transform: scale(1); }
+
+  .result-detail {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .result-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .status {
+    width: 100%;
+    max-width: 400px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    text-align: center;
+    transition: opacity 0.5s;
+  }
+
+  .status.connected { background: #1a2e1a; border: 1px solid #2a4a2a; color: var(--green); }
+  .status.disconnected { background: #2e1a1a; border: 1px solid #4a2a2a; color: var(--red); }
+  .status.waiting { background: #2e2a1a; border: 1px solid #4a3a2a; color: var(--accent); }
+
+  .error { color: var(--red); font-size: 0.82rem; text-align: center; }
+
+  @keyframes shake {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    20% { transform: scale(1.1) rotate(-3deg); }
+    40% { transform: scale(1.1) rotate(3deg); }
+    60% { transform: scale(1.1) rotate(-2deg); }
+    80% { transform: scale(1.05) rotate(1deg); }
+  }
+  .rolling { animation: shake 0.4s ease-out; }
+</style>
+</head>
+<body>
+
+<h1>&#9876; Dice Roller</h1>
+
+<div class="roller">
+  <div class="input-row">
+    <input type="text" id="diceInput" placeholder="2d6+3, 1d20, 4d8-2..." autocomplete="off" spellcheck="false">
+    <button class="roll-btn" id="rollBtn" onclick="roll()">Roll</button>
+  </div>
+
+  <div class="quick-btns">
+    <button onclick="quickRoll('1d4')">d4</button>
+    <button onclick="quickRoll('1d6')">d6</button>
+    <button onclick="quickRoll('1d8')">d8</button>
+    <button onclick="quickRoll('1d10')">d10</button>
+    <button onclick="quickRoll('1d12')">d12</button>
+    <button onclick="quickRoll('1d20')">d20</button>
+    <button onclick="quickRoll('1d100')">d100</button>
+    <button onclick="quickRoll('2d6')">2d6</button>
+  </div>
+
+  <div class="result-area" id="resultArea">
+    <div class="result-label">Rola os dados!</div>
+  </div>
+</div>
+
+<div class="status waiting" id="statusBar">Conectando ao Element...</div>
+
+<script>
+// ============================================================
+// Matrix Widget API - using official library
+// ============================================================
+var widgetApi = null;
+var widgetReady = false;
+var inIframe = (window.parent !== window);
+
+function initWidgetApi() {
+  if (!inIframe) {
+    setStatus('disconnected', 'Modo standalone. Abra como widget no Element para postar no chat.');
+    return;
+  }
+
+  try {
+    // mxwidgets is the global exposed by the UMD bundle
+    var lib = (typeof mxwidgets !== 'undefined') ? mxwidgets : null;
+    if (!lib) {
+      setStatus('disconnected', 'Biblioteca Widget API nao carregou. Verifique conexao.');
+      return;
+    }
+
+    // Get widgetId from URL params Element injects
+    var params = new URLSearchParams(window.location.search);
+    var wId = params.get('widgetId') || null;
+
+    // Also check hash params
+    if (!wId && window.location.hash) {
+      var hashStr = window.location.hash.substring(1);
+      if (hashStr.indexOf('?') !== -1) {
+        var hashParams = new URLSearchParams(hashStr.substring(hashStr.indexOf('?')));
+        wId = hashParams.get('widgetId') || null;
+      }
+    }
+
+    // Create the WidgetApi instance
+    // The library exposes WidgetApi as a property
+    var WidgetApiClass = lib.WidgetApi || lib;
+    widgetApi = new WidgetApiClass(wId);
+
+    // Request capability to send room messages
+    widgetApi.requestCapability('org.matrix.msc2762.send.event:m.room.message');
+
+    // Listen for the ready event
+    widgetApi.on('ready', function() {
+      widgetReady = true;
+      setStatus('connected', 'Conectado! Rolagens serao postadas no chat.');
+      setTimeout(function() {
+        document.getElementById('statusBar').style.opacity = '0.4';
+      }, 4000);
+    });
+
+    // Start the API communication
+    widgetApi.start();
+
+    // Tell Element we're loaded
+    // Some versions need this called after start()
+    try {
+      widgetApi.sendContentLoaded();
+    } catch(e) {
+      // Might not be available in all versions
+      console.log('sendContentLoaded not available or failed:', e);
+    }
+
+    // Timeout fallback
+    setTimeout(function() {
+      if (!widgetReady) {
+        setStatus('disconnected', 'Nao conectou ao Element. Rolagens aparecerao apenas aqui.');
+      }
+    }, 10000);
+
+  } catch(err) {
+    console.error('Widget API init error:', err);
+    setStatus('disconnected', 'Erro ao inicializar: ' + err.message);
+  }
+}
+
+function setStatus(type, msg) {
+  var bar = document.getElementById('statusBar');
+  bar.className = 'status ' + type;
+  bar.textContent = msg;
+  bar.style.opacity = '1';
+}
+
+function sendToRoom(plainText, htmlText) {
+  if (!widgetApi || !widgetReady) return;
+
+  try {
+    widgetApi.transport.send('send_event', {
+      type: 'm.room.message',
+      content: {
+        msgtype: 'm.notice',
+        body: plainText,
+        format: 'org.matrix.custom.html',
+        formatted_body: htmlText || plainText
+      }
+    }).catch(function(err) {
+      console.warn('Failed to send to room:', err);
+    });
+  } catch(err) {
+    console.warn('Send error:', err);
+  }
+}
+
+// ============================================================
+// Dice Logic
+// ============================================================
+var input = document.getElementById('diceInput');
+var resultArea = document.getElementById('resultArea');
+
+input.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') roll();
+});
+
+function quickRoll(notation) {
+  input.value = notation;
+  roll();
+}
+
+function parseDice(str) {
+  str = str.replace(/\s+/g, '').toLowerCase();
+  var parts = [];
+  var regex = /([+-]?)(\d*)d(\d+)|([+-]?\d+)/g;
+  var match;
+  var hasAnyDice = false;
+
+  while ((match = regex.exec(str)) !== null) {
+    if (match[3]) {
+      hasAnyDice = true;
+      var sign = match[1] === '-' ? -1 : 1;
+      var count = parseInt(match[2] || '1');
+      var faces = parseInt(match[3]);
+      if (count < 1 || count > 100) throw new Error('Quantidade de dados: 1-100');
+      if (faces < 2 || faces > 1000) throw new Error('Faces do dado: 2-1000');
+      parts.push({ type: 'dice', count: count, faces: faces, sign: sign });
+    } else if (match[4]) {
+      parts.push({ type: 'mod', value: parseInt(match[4]) });
+    }
+  }
+
+  if (!hasAnyDice) throw new Error('Use a notacao: 2d6, 1d20+5...');
+  return parts;
+}
+
+function rollDice(parts) {
+  var total = 0;
+  var rolls = [];
+
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i];
+    if (part.type === 'dice') {
+      var diceRolls = [];
+      for (var j = 0; j < part.count; j++) {
+        var val = Math.floor(Math.random() * part.faces) + 1;
+        diceRolls.push(val);
+      }
+      var sum = diceRolls.reduce(function(a, b) { return a + b; }, 0) * part.sign;
+      total += sum;
+      rolls.push({
+        label: (part.sign === -1 ? '-' : '') + part.count + 'd' + part.faces,
+        values: diceRolls,
+        sign: part.sign
+      });
+    } else {
+      total += part.value;
+      rolls.push({ label: (part.value >= 0 ? '+' : '') + part.value, values: [], sign: 1 });
+    }
+  }
+
+  return { total: total, rolls: rolls };
+}
+
+function formatRolls(rolls) {
+  return rolls.map(function(r) {
+    if (r.values.length > 0) return r.label + ' [' + r.values.join(', ') + ']';
+    return r.label;
+  }).join(' ');
+}
+
+function formatRollsHTML(rolls) {
+  return rolls.map(function(r) {
+    if (r.values.length > 0) {
+      var highlighted = r.values.map(function(v) {
+        if (r.values.length === 1) return '<b>' + v + '</b>';
+        return v;
+      }).join(', ');
+      return r.label + ' [' + highlighted + ']';
+    }
+    return r.label;
+  }).join(' ');
+}
+
+function roll() {
+  var notation = input.value.trim();
+  if (!notation) { input.focus(); return; }
+
+  try {
+    var parts = parseDice(notation);
+    var result = rollDice(parts);
+    var detail = formatRolls(result.rolls);
+
+    // Animate
+    var btn = document.getElementById('rollBtn');
+    btn.classList.remove('rolling');
+    void btn.offsetWidth;
+    btn.classList.add('rolling');
+
+    // Show result
+    resultArea.innerHTML =
+      '<div class="result-total show">' + result.total + '</div>' +
+      '<div class="result-detail">' + detail + '</div>';
+
+    var totalEl = resultArea.querySelector('.result-total');
+    totalEl.classList.remove('show');
+    void totalEl.offsetWidth;
+    totalEl.classList.add('show');
+
+    // Send to chat
+    var plainText = '\uD83C\uDFB2 ' + notation + ' \u2192 ' + detail + ' = ' + result.total;
+    var htmlText = '\uD83C\uDFB2 <b>' + notation + '</b> \u2192 ' +
+                   formatRollsHTML(result.rolls) +
+                   ' = <b>' + result.total + '</b>';
+
+    sendToRoom(plainText, htmlText);
+
+  } catch (err) {
+    resultArea.innerHTML = '<div class="error">' + err.message + '</div>';
+  }
+}
+
+// ============================================================
+// Init
+// ============================================================
+initWidgetApi();
+input.focus();
+</script>
+
+</body>
+</html>
