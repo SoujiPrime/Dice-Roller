@@ -1,140 +1,143 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dice Roller - RPG</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;700&display=swap');
-        :root { --bg: #1a1520; --surface: #241e2e; --border: #3a2f4a; --accent: #c4a35a; --accent-glow: #e8c96880; --text: #e8e0f0; --text-dim: #8a7e96; --red: #c45a5a; --green: #5ac47a; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 16px; background-image: radial-gradient(ellipse at 20% 50%, #2a1f3a 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, #1f2a3a 0%, transparent 60%); }
-        h1 { font-family: 'Cinzel', serif; color: var(--accent); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 12px; text-shadow: 0 0 20px var(--accent-glow); font-size: 1.3rem; }
-        .roller { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
-        .input-row { display: flex; gap: 8px; }
-        input[type="text"] { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); outline: none; }
-        input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
-        button.roll-btn { background: linear-gradient(135deg, var(--accent), #a8883a); color: var(--bg); border: none; border-radius: 8px; padding: 10px 20px; font-family: 'Cinzel', serif; font-weight: 800; cursor: pointer; text-transform: uppercase; }
-        .quick-btns { display: flex; flex-wrap: wrap; gap: 6px; }
-        .quick-btns button { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; color: var(--text-dim); cursor: pointer; font-size: 0.78rem; }
-        .result-area { margin-top: 15px; min-height: 80px; text-align: center; }
-        .result-total { font-family: 'Cinzel', serif; font-size: 3rem; color: var(--accent); text-shadow: 0 0 20px var(--accent-glow); }
-        .status { margin-top: 20px; font-size: 0.7rem; padding: 5px 10px; border-radius: 4px; opacity: 0.6; }
-        .connected { color: var(--green); border: 1px solid var(--green); }
-        .waiting { color: var(--accent); border: 1px solid var(--accent); }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dice Roller RPG</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=JetBrains+Mono&display=swap');
+  :root { --bg: #1a1520; --surface: #241e2e; --border: #3a2f4a; --accent: #c4a35a; --text: #e8e0f0; --red: #c45a5a; --green: #5ac47a; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
+  h1 { font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 20px; font-size: 1.5rem; text-shadow: 0 0 10px rgba(196, 163, 90, 0.5); }
+  .roller { width: 100%; max-width: 350px; background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+  .input-row { display: flex; gap: 8px; margin-bottom: 15px; }
+  input { flex: 1; background: #120e16; border: 1px solid var(--border); padding: 10px; color: #fff; border-radius: 6px; outline: none; }
+  input:focus { border-color: var(--accent); }
+  button { cursor: pointer; border: none; border-radius: 6px; font-family: 'Cinzel', serif; transition: 0.2s; }
+  .roll-btn { background: var(--accent); color: var(--bg); padding: 10px 20px; font-weight: bold; }
+  .roll-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .quick-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px; }
+  .quick-btns button { background: var(--border); color: var(--text); padding: 5px; font-size: 0.8rem; }
+  .result-area { text-align: center; min-height: 60px; padding: 10px; border-top: 1px solid var(--border); }
+  .result-total { font-size: 2.5rem; color: var(--accent); font-family: 'Cinzel', serif; }
+  .status { font-size: 0.7rem; margin-top: 15px; padding: 5px; border-radius: 4px; text-align: center; width: 100%; max-width: 350px; }
+  .waiting { background: #332a15; color: var(--accent); }
+  .connected { background: #1a2e1a; color: var(--green); }
+</style>
 </head>
 <body>
 
 <h1>⚔️ Dice Roller</h1>
 
 <div class="roller">
-    <div class="input-row">
-        <input type="text" id="diceInput" placeholder="Ex: 1d20+5">
-        <button class="roll-btn" onclick="roll()">Roll</button>
-    </div>
-    <div class="quick-btns">
-        <button onclick="quickRoll('1d4')">d4</button>
-        <button onclick="quickRoll('1d6')">d6</button>
-        <button onclick="quickRoll('1d20')">d20</button>
-    </div>
-    <div class="result-area" id="resultArea">
-        <div class="result-detail">Aguardando rolagem...</div>
-    </div>
+  <div class="input-row">
+    <input type="text" id="diceInput" placeholder="Ex: 1d20+5">
+    <button class="roll-btn" onclick="roll()">Roll</button>
+  </div>
+  <div class="quick-btns">
+    <button onclick="q('1d4')">d4</button>
+    <button onclick="q('1d6')">d6</button>
+    <button onclick="q('1d8')">d8</button>
+    <button onclick="q('1d10')">d10</button>
+    <button onclick="q('1d12')">d12</button>
+    <button onclick="q('1d20')">d20</button>
+    <button onclick="q('1d100')">d100</button>
+    <button onclick="q('2d6')">2d6</button>
+  </div>
+  <div id="resultArea" class="result-area">Aguardando...</div>
 </div>
 
-<div id="statusBar" class="status waiting">Iniciando comunicação...</div>
+<div id="status" class="status waiting">Iniciando comunicação...</div>
 
 <script>
-    let widgetId = new URLSearchParams(window.location.search).get('widgetId');
-    let widgetReady = false;
+  let wId = new URLSearchParams(window.location.search).get('widgetId');
+  let ready = false;
 
-    // Função para responder ao Element
-    function sendReply(msg, response = {}) {
-        window.parent.postMessage({
-            api: msg.api,
-            widgetId: widgetId || msg.widgetId,
-            requestid: msg.requestid,
-            action: msg.action,
-            data: msg.data,
-            response: response
-        }, '*');
+  const setStatus = (cls, txt) => { 
+    const s = document.getElementById('status');
+    s.className = 'status ' + cls;
+    s.innerText = txt;
+  };
+
+  // Escuta as mensagens do Element
+  window.addEventListener('message', (ev) => {
+    const msg = ev.data;
+    if (!msg || !msg.api) return;
+
+    // Se o ID for o placeholder ou nulo, captura o real da mensagem
+    if (!wId || wId.startsWith('$')) wId = msg.widgetId;
+
+    console.log("Recebido:", msg.action, msg);
+
+    if (msg.api === 'toWidget') {
+      let response = {};
+
+      if (msg.action === 'supported_api_versions') {
+        response = { supported_versions: ['0.0.1', '1.1.0'] };
+      } 
+      else if (msg.action === 'capabilities') {
+        response = { capabilities: ['org.matrix.msc2762.send.event:m.room.message'] };
+      } 
+      else if (msg.action === 'notify_capabilities') {
+        ready = true;
+        setStatus('connected', 'Conectado ao chat!');
+        response = {};
+      }
+
+      // RESPOSTA CRUCIAL PARA O ELEMENT NÃO TRAVAR
+      ev.source.postMessage({
+        api: 'toWidget',
+        action: msg.action,
+        requestid: msg.requestid,
+        widgetId: wId,
+        data: msg.data,
+        response: response
+      }, '*');
     }
+  });
 
-    // Escuta as mensagens do sistema Matrix/Element
-    window.addEventListener('message', (event) => {
-        const msg = event.data;
-        if (!msg || !msg.api) return;
+  // Notifica o Element que o widget carregou
+  if (window.parent !== window) {
+    window.parent.postMessage({
+      api: 'fromWidget',
+      action: 'content_loaded',
+      widgetId: wId,
+      requestid: 'init-' + Date.now(),
+      data: {}
+    }, '*');
+  }
 
-        // "Pesca" o ID real se o da URL for o placeholder do GitHub
-        if (!widgetId || widgetId.startsWith('$')) {
-            widgetId = msg.widgetId;
+  function roll() {
+    const val = document.getElementById('diceInput').value.trim().toLowerCase();
+    const m = val.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+    if (!m) return;
+
+    const n = parseInt(m[1]), s = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
+    let rolls = [];
+    for(let i=0; i<n; i++) rolls.push(Math.floor(Math.random()*s)+1);
+    const total = rolls.reduce((a,b)=>a+b, 0) + mod;
+
+    document.getElementById('resultArea').innerHTML = `<div class="result-total">${total}</div>`;
+
+    if (ready) {
+      window.parent.postMessage({
+        api: 'fromWidget',
+        action: 'send_event',
+        widgetId: wId,
+        requestid: 'roll-' + Date.now(),
+        data: {
+          type: 'm.room.message',
+          content: {
+            msgtype: 'm.notice',
+            body: `🎲 ${val} ➔ [${rolls.join(', ')}] = ${total}`
+          }
         }
-
-        if (msg.api === 'toWidget') {
-            if (msg.action === 'supported_api_versions') {
-                sendReply(msg, { supported_versions: ['0.0.1', '1.1.0'] });
-            } 
-            else if (msg.action === 'capabilities') {
-                sendReply(msg, { capabilities: ['org.matrix.msc2762.send.event:m.room.message'] });
-            } 
-            else if (msg.action === 'notify_capabilities') {
-                widgetReady = true;
-                document.getElementById('statusBar').textContent = "Conectado!";
-                document.getElementById('statusBar').className = "status connected";
-                sendReply(msg); // Confirmação crucial
-            } 
-            else {
-                sendReply(msg); // Dá um "OK" em qualquer outra coisa (tema, etc)
-            }
-        }
-    });
-
-    // Avisa que o widget está pronto para começar o papo
-    if (window.parent !== window) {
-        window.parent.postMessage({
-            api: 'fromWidget',
-            widgetId: widgetId,
-            requestid: 'init_' + Date.now(),
-            action: 'content_loaded',
-            data: {}
-        }, '*');
+      }, '*');
     }
+  }
 
-    // Lógica de Rolagem
-    function roll() {
-        const input = document.getElementById('diceInput').value.toLowerCase();
-        const match = input.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-        if (!match) return;
-
-        const num = parseInt(match[1]);
-        const sides = parseInt(match[2]);
-        const mod = match[3] ? parseInt(match[3]) : 0;
-        
-        let sum = 0;
-        for (let i = 0; i < num; i++) sum += Math.floor(Math.random() * sides) + 1;
-        const total = sum + mod;
-
-        document.getElementById('resultArea').innerHTML = `<div class="result-total">${total}</div>`;
-
-        if (widgetReady) {
-            window.parent.postMessage({
-                api: 'fromWidget',
-                widgetId: widgetId,
-                requestid: 'roll_' + Date.now(),
-                action: 'send_event',
-                data: {
-                    type: 'm.room.message',
-                    content: {
-                        msgtype: 'm.notice',
-                        body: `🎲 ${input} ➔ Result: ${total}`
-                    }
-                }
-            }, '*');
-        }
-    }
-
-    function quickRoll(n) { document.getElementById('diceInput').value = n; roll(); }
+  function q(v) { document.getElementById('diceInput').value = v; roll(); }
 </script>
 </body>
 </html>
