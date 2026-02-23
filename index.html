@@ -13,17 +13,14 @@
   .roller { width: 100%; max-width: 350px; background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
   .input-row { display: flex; gap: 8px; margin-bottom: 15px; }
   input { flex: 1; background: #120e16; border: 1px solid var(--border); padding: 10px; color: #fff; border-radius: 6px; outline: none; }
-  input:focus { border-color: var(--accent); }
-  button { cursor: pointer; border: none; border-radius: 6px; font-family: 'Cinzel', serif; transition: 0.2s; }
-  .roll-btn { background: var(--accent); color: var(--bg); padding: 10px 20px; font-weight: bold; }
-  .roll-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .roll-btn { background: var(--accent); color: var(--bg); padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 6px; font-family: 'Cinzel', serif; }
   .quick-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px; }
-  .quick-btns button { background: var(--border); color: var(--text); padding: 5px; font-size: 0.8rem; }
+  .quick-btns button { background: var(--border); color: var(--text); padding: 5px; font-size: 0.8rem; border: none; cursor: pointer; border-radius: 4px; }
   .result-area { text-align: center; min-height: 60px; padding: 10px; border-top: 1px solid var(--border); }
   .result-total { font-size: 2.5rem; color: var(--accent); font-family: 'Cinzel', serif; }
-  .status { font-size: 0.7rem; margin-top: 15px; padding: 5px; border-radius: 4px; text-align: center; width: 100%; max-width: 350px; }
-  .waiting { background: #332a15; color: var(--accent); }
-  .connected { background: #1a2e1a; color: var(--green); }
+  .status { font-size: 0.7rem; margin-top: 15px; padding: 8px; border-radius: 4px; text-align: center; width: 100%; max-width: 350px; transition: all 0.3s; }
+  .waiting { background: #332a15; color: var(--accent); border: 1px solid var(--accent); }
+  .connected { background: #1a2e1a; color: var(--green); border: 1px solid var(--green); }
 </style>
 </head>
 <body>
@@ -45,89 +42,72 @@
     <button onclick="q('1d100')">d100</button>
     <button onclick="q('2d6')">2d6</button>
   </div>
-  <div id="resultArea" class="result-area">Aguardando...</div>
+  <div id="resultArea" class="result-area">Aguardando rolo...</div>
 </div>
 
-<div id="status" class="status waiting">Iniciando comunicação...</div>
+<div id="status" class="status waiting">Iniciando comunicação com Element...</div>
 
 <script>
-// Configurações Globais
-let widgetId = null;
-let ready = false;
+  let wId = null;
+  let ready = false;
 
-// Função para enviar dados ao Element/Scalar
-function sendToElement(action, data = {}, response = undefined) {
-    const msg = {
-        api: response ? 'toWidget' : 'fromWidget',
-        widgetId: widgetId,
-        requestid: 'req-' + Date.now() + Math.random().toString(36).substr(2, 5),
-        action: action,
-        data: data
-    };
-    if (response) msg.response = response;
-    
-    window.parent.postMessage(msg, '*');
-}
+  // Função para responder ao Element exatamente no formato esperado
+  function sendResponse(originalMsg, responseData) {
+    window.parent.postMessage({
+      api: 'toWidget', // Respostas a toWidget devem manter o cabeçalho api: toWidget
+      action: originalMsg.action,
+      requestid: originalMsg.requestid,
+      widgetId: originalMsg.widgetId,
+      data: originalMsg.data,
+      response: responseData
+    }, '*');
+  }
 
-// Ouvinte de mensagens (O Cérebro)
-window.addEventListener('message', (event) => {
-    const msg = event.data;
+  window.addEventListener('message', (ev) => {
+    const msg = ev.data;
     if (!msg || !msg.api) return;
 
-    // CAPTURA DE ID REAL: Pegamos o ID de qualquer mensagem que venha do Element
-    if (!widgetId && msg.widgetId) {
-        widgetId = msg.widgetId;
-        console.log("ID do Widget capturado com sucesso:", widgetId);
-    }
+    // Sincroniza o ID do widget
+    if (!wId) wId = msg.widgetId;
 
     if (msg.api === 'toWidget') {
-        // Responde obrigatoriamente para não travar o handshake
-        if (msg.action === 'supported_api_versions') {
-            sendToElement(msg.action, msg.data, { supported_versions: ['0.0.1', '1.1.0'] });
-        } 
-        else if (msg.action === 'capabilities') {
-            sendToElement(msg.action, msg.data, { 
-                capabilities: ['org.matrix.msc2762.send.event:m.room.message'] 
-            });
-        } 
-        else if (msg.action === 'notify_capabilities') {
-            ready = true;
-            document.getElementById('status').className = 'status connected';
-            document.getElementById('status').innerText = 'Conectado! Role os dados.';
-            sendToElement(msg.action, msg.data, {}); 
-        }
-        else {
-            // ACK genérico para qualquer outra coisa (tema, etc)
-            sendToElement(msg.action, msg.data, {});
-        }
+      if (msg.action === 'supported_api_versions') {
+        sendResponse(msg, { supported_versions: ['0.0.1', '1.1.0'] });
+      } 
+      else if (msg.action === 'capabilities') {
+        // Solicitando permissão para enviar mensagens
+        sendResponse(msg, { capabilities: ['m.room.message', 'org.matrix.msc2762.send.event:m.room.message'] });
+      } 
+      else if (msg.action === 'notify_capabilities') {
+        ready = true;
+        const s = document.getElementById('status');
+        s.innerText = "Conectado! As rolagens serão enviadas.";
+        s.className = "status connected";
+        sendResponse(msg, {}); // ACK vazio para confirmar
+      } 
+      else {
+        sendResponse(msg, {}); // Responde qualquer outra coisa para evitar timeouts
+      }
     }
-});
+  });
 
-// Avisa que o widget carregou assim que o script rodar
-setTimeout(() => {
-    if (window.parent !== window) {
-        // Tentamos enviar com o ID que tivermos, ou null (o Element costuma responder)
-        window.parent.postMessage({
-            api: 'fromWidget',
-            action: 'content_loaded',
-            widgetId: widgetId,
-            requestid: 'init-' + Date.now(),
-            data: {}
-        }, '*');
-    }
-}, 500);
+  // Notifica que o widget carregou
+  if (window.parent !== window) {
+    window.parent.postMessage({
+      api: 'fromWidget',
+      action: 'content_loaded',
+      widgetId: new URLSearchParams(window.location.search).get('widgetId'),
+      requestid: 'init-' + Date.now(),
+      data: {}
+    }, '*');
+  }
 
-// Lógica de Rolagem (Ajustada para usar o 'ready')
-function roll() {
-    const input = document.getElementById('diceInput').value.trim().toLowerCase();
-    const match = input.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-    
-    if (!match) {
-        document.getElementById('resultArea').innerText = "Use o formato 1d20+5";
-        return;
-    }
+  function roll() {
+    const val = document.getElementById('diceInput').value.trim().toLowerCase();
+    const m = val.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+    if (!m) return;
 
-    const n = parseInt(match[1]), s = parseInt(match[2]), mod = match[3] ? parseInt(match[3]) : 0;
+    const n = parseInt(m[1]), s = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
     let rolls = [];
     for(let i=0; i<n; i++) rolls.push(Math.floor(Math.random()*s)+1);
     const total = rolls.reduce((a,b)=>a+b, 0) + mod;
@@ -135,21 +115,23 @@ function roll() {
     document.getElementById('resultArea').innerHTML = `<div class="result-total">${total}</div>`;
 
     if (ready) {
-        sendToElement('send_event', {
-            type: 'm.room.message',
-            content: {
-                msgtype: 'm.notice',
-                body: `🎲 ${input} ➔ [${rolls.join(', ')}] = ${total}`,
-                format: 'org.matrix.custom.html',
-                formatted_body: `🎲 <b>${input}</b> ➔ [${rolls.join(', ')}] = <b>${total}</b>`
-            }
-        });
-    } else {
-        console.warn("Widget ainda não está pronto para enviar mensagens.");
+      window.parent.postMessage({
+        api: 'fromWidget',
+        action: 'send_event',
+        widgetId: wId,
+        requestid: 'roll-' + Date.now(),
+        data: {
+          type: 'm.room.message',
+          content: {
+            msgtype: 'm.notice',
+            body: `🎲 ${val} ➔ [${rolls.join(', ')}] = ${total}`
+          }
+        }
+      }, '*');
     }
-}
+  }
 
-function q(v) { document.getElementById('diceInput').value = v; roll(); }
+  function q(v) { document.getElementById('diceInput').value = v; roll(); }
 </script>
 </body>
 </html>
