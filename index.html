@@ -51,69 +51,83 @@
 <div id="status" class="status waiting">Iniciando comunicação...</div>
 
 <script>
-  let wId = new URLSearchParams(window.location.search).get('widgetId');
-  let ready = false;
+// Configurações Globais
+let widgetId = null;
+let ready = false;
 
-  const setStatus = (cls, txt) => { 
-    const s = document.getElementById('status');
-    s.className = 'status ' + cls;
-    s.innerText = txt;
-  };
+// Função para enviar dados ao Element/Scalar
+function sendToElement(action, data = {}, response = undefined) {
+    const msg = {
+        api: response ? 'toWidget' : 'fromWidget',
+        widgetId: widgetId,
+        requestid: 'req-' + Date.now() + Math.random().toString(36).substr(2, 5),
+        action: action,
+        data: data
+    };
+    if (response) msg.response = response;
+    
+    window.parent.postMessage(msg, '*');
+}
 
-  // Escuta as mensagens do Element
-  window.addEventListener('message', (ev) => {
-    const msg = ev.data;
+// Ouvinte de mensagens (O Cérebro)
+window.addEventListener('message', (event) => {
+    const msg = event.data;
     if (!msg || !msg.api) return;
 
-    // Se o ID for o placeholder ou nulo, captura o real da mensagem
-    if (!wId || wId.startsWith('$')) wId = msg.widgetId;
-
-    console.log("Recebido:", msg.action, msg);
+    // CAPTURA DE ID REAL: Pegamos o ID de qualquer mensagem que venha do Element
+    if (!widgetId && msg.widgetId) {
+        widgetId = msg.widgetId;
+        console.log("ID do Widget capturado com sucesso:", widgetId);
+    }
 
     if (msg.api === 'toWidget') {
-      let response = {};
-
-      if (msg.action === 'supported_api_versions') {
-        response = { supported_versions: ['0.0.1', '1.1.0'] };
-      } 
-      else if (msg.action === 'capabilities') {
-        response = { capabilities: ['org.matrix.msc2762.send.event:m.room.message'] };
-      } 
-      else if (msg.action === 'notify_capabilities') {
-        ready = true;
-        setStatus('connected', 'Conectado ao chat!');
-        response = {};
-      }
-
-      // RESPOSTA CRUCIAL PARA O ELEMENT NÃO TRAVAR
-      ev.source.postMessage({
-        api: 'toWidget',
-        action: msg.action,
-        requestid: msg.requestid,
-        widgetId: wId,
-        data: msg.data,
-        response: response
-      }, '*');
+        // Responde obrigatoriamente para não travar o handshake
+        if (msg.action === 'supported_api_versions') {
+            sendToElement(msg.action, msg.data, { supported_versions: ['0.0.1', '1.1.0'] });
+        } 
+        else if (msg.action === 'capabilities') {
+            sendToElement(msg.action, msg.data, { 
+                capabilities: ['org.matrix.msc2762.send.event:m.room.message'] 
+            });
+        } 
+        else if (msg.action === 'notify_capabilities') {
+            ready = true;
+            document.getElementById('status').className = 'status connected';
+            document.getElementById('status').innerText = 'Conectado! Role os dados.';
+            sendToElement(msg.action, msg.data, {}); 
+        }
+        else {
+            // ACK genérico para qualquer outra coisa (tema, etc)
+            sendToElement(msg.action, msg.data, {});
+        }
     }
-  });
+});
 
-  // Notifica o Element que o widget carregou
-  if (window.parent !== window) {
-    window.parent.postMessage({
-      api: 'fromWidget',
-      action: 'content_loaded',
-      widgetId: wId,
-      requestid: 'init-' + Date.now(),
-      data: {}
-    }, '*');
-  }
+// Avisa que o widget carregou assim que o script rodar
+setTimeout(() => {
+    if (window.parent !== window) {
+        // Tentamos enviar com o ID que tivermos, ou null (o Element costuma responder)
+        window.parent.postMessage({
+            api: 'fromWidget',
+            action: 'content_loaded',
+            widgetId: widgetId,
+            requestid: 'init-' + Date.now(),
+            data: {}
+        }, '*');
+    }
+}, 500);
 
-  function roll() {
-    const val = document.getElementById('diceInput').value.trim().toLowerCase();
-    const m = val.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-    if (!m) return;
+// Lógica de Rolagem (Ajustada para usar o 'ready')
+function roll() {
+    const input = document.getElementById('diceInput').value.trim().toLowerCase();
+    const match = input.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+    
+    if (!match) {
+        document.getElementById('resultArea').innerText = "Use o formato 1d20+5";
+        return;
+    }
 
-    const n = parseInt(m[1]), s = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
+    const n = parseInt(match[1]), s = parseInt(match[2]), mod = match[3] ? parseInt(match[3]) : 0;
     let rolls = [];
     for(let i=0; i<n; i++) rolls.push(Math.floor(Math.random()*s)+1);
     const total = rolls.reduce((a,b)=>a+b, 0) + mod;
@@ -121,23 +135,21 @@
     document.getElementById('resultArea').innerHTML = `<div class="result-total">${total}</div>`;
 
     if (ready) {
-      window.parent.postMessage({
-        api: 'fromWidget',
-        action: 'send_event',
-        widgetId: wId,
-        requestid: 'roll-' + Date.now(),
-        data: {
-          type: 'm.room.message',
-          content: {
-            msgtype: 'm.notice',
-            body: `🎲 ${val} ➔ [${rolls.join(', ')}] = ${total}`
-          }
-        }
-      }, '*');
+        sendToElement('send_event', {
+            type: 'm.room.message',
+            content: {
+                msgtype: 'm.notice',
+                body: `🎲 ${input} ➔ [${rolls.join(', ')}] = ${total}`,
+                format: 'org.matrix.custom.html',
+                formatted_body: `🎲 <b>${input}</b> ➔ [${rolls.join(', ')}] = <b>${total}</b>`
+            }
+        });
+    } else {
+        console.warn("Widget ainda não está pronto para enviar mensagens.");
     }
-  }
+}
 
-  function q(v) { document.getElementById('diceInput').value = v; roll(); }
+function q(v) { document.getElementById('diceInput').value = v; roll(); }
 </script>
 </body>
 </html>
