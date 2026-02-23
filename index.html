@@ -1,327 +1,140 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dice Roller - RPG Edition</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;700&display=swap');
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  :root {
-    --bg: #1a1520;
-    --surface: #241e2e;
-    --border: #3a2f4a;
-    --accent: #c4a35a;
-    --accent-glow: #e8c96880;
-    --text: #e8e0f0;
-    --text-dim: #8a7e96;
-    --red: #c45a5a;
-    --green: #5ac47a;
-  }
-
-  body {
-    font-family: 'JetBrains Mono', monospace;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px;
-    background-image:
-      radial-gradient(ellipse at 20% 50%, #2a1f3a 0%, transparent 60%),
-      radial-gradient(ellipse at 80% 50%, #1f2a3a 0%, transparent 60%);
-    overflow-x: hidden;
-  }
-
-  h1 {
-    font-family: 'Cinzel', serif;
-    font-weight: 800;
-    font-size: 1.3rem;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-bottom: 12px;
-    text-shadow: 0 0 20px var(--accent-glow);
-  }
-
-  .roller {
-    width: 100%;
-    max-width: 400px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .input-row { display: flex; gap: 8px; }
-
-  input[type="text"] {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  input[type="text"]:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 12px var(--accent-glow);
-  }
-
-  button.roll-btn {
-    background: linear-gradient(135deg, var(--accent), #a8883a);
-    color: var(--bg);
-    border: none;
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-family: 'Cinzel', serif;
-    font-weight: 800;
-    font-size: 0.95rem;
-    letter-spacing: 0.1em;
-    cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.2s;
-    text-transform: uppercase;
-  }
-
-  .quick-btns { display: flex; flex-wrap: wrap; gap: 6px; }
-
-  .quick-btns button {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 6px 12px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.78rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .quick-btns button:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: #2a2235;
-  }
-
-  .result-area {
-    margin-top: 4px;
-    min-height: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-
-  .result-total {
-    font-family: 'Cinzel', serif;
-    font-size: 2.8rem;
-    font-weight: 800;
-    color: var(--accent);
-    text-shadow: 0 0 24px var(--accent-glow);
-    line-height: 1;
-  }
-
-  .result-detail { font-size: 0.82rem; color: var(--text-dim); text-align: center; }
-
-  .status {
-    width: 100%;
-    max-width: 400px;
-    margin-top: 12px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    text-align: center;
-    transition: opacity 0.5s;
-    opacity: 0.8;
-  }
-
-  .status.connected { background: #1a2e1a; border: 1px solid #2a4a2a; color: var(--green); }
-  .status.disconnected { background: #2e1a1a; border: 1px solid #4a2a2a; color: var(--red); }
-  .status.waiting { background: #2e2a1a; border: 1px solid #4a3a2a; color: var(--accent); }
-
-  @keyframes shake {
-    0%, 100% { transform: scale(1); }
-    20% { transform: scale(1.1) rotate(-3deg); }
-    40% { transform: scale(1.1) rotate(3deg); }
-  }
-  .rolling { animation: shake 0.3s ease-out; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Roller - RPG</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        :root { --bg: #1a1520; --surface: #241e2e; --border: #3a2f4a; --accent: #c4a35a; --accent-glow: #e8c96880; --text: #e8e0f0; --text-dim: #8a7e96; --red: #c45a5a; --green: #5ac47a; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 16px; background-image: radial-gradient(ellipse at 20% 50%, #2a1f3a 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, #1f2a3a 0%, transparent 60%); }
+        h1 { font-family: 'Cinzel', serif; color: var(--accent); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 12px; text-shadow: 0 0 20px var(--accent-glow); font-size: 1.3rem; }
+        .roller { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+        .input-row { display: flex; gap: 8px; }
+        input[type="text"] { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); outline: none; }
+        input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+        button.roll-btn { background: linear-gradient(135deg, var(--accent), #a8883a); color: var(--bg); border: none; border-radius: 8px; padding: 10px 20px; font-family: 'Cinzel', serif; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+        .quick-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+        .quick-btns button { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; color: var(--text-dim); cursor: pointer; font-size: 0.78rem; }
+        .result-area { margin-top: 15px; min-height: 80px; text-align: center; }
+        .result-total { font-family: 'Cinzel', serif; font-size: 3rem; color: var(--accent); text-shadow: 0 0 20px var(--accent-glow); }
+        .status { margin-top: 20px; font-size: 0.7rem; padding: 5px 10px; border-radius: 4px; opacity: 0.6; }
+        .connected { color: var(--green); border: 1px solid var(--green); }
+        .waiting { color: var(--accent); border: 1px solid var(--accent); }
+    </style>
 </head>
 <body>
 
-<h1>&#9876; Dice Roller</h1>
+<h1>⚔️ Dice Roller</h1>
 
 <div class="roller">
-  <div class="input-row">
-    <input type="text" id="diceInput" placeholder="Ex: 2d6+3" autocomplete="off">
-    <button class="roll-btn" id="rollBtn" onclick="roll()">Roll</button>
-  </div>
-
-  <div class="quick-btns">
-    <button onclick="quickRoll('1d4')">d4</button>
-    <button onclick="quickRoll('1d6')">d6</button>
-    <button onclick="quickRoll('1d8')">d8</button>
-    <button onclick="quickRoll('1d10')">d10</button>
-    <button onclick="quickRoll('1d12')">d12</button>
-    <button onclick="quickRoll('1d20')">d20</button>
-    <button onclick="quickRoll('1d100')">d100</button>
-  </div>
-
-  <div class="result-area" id="resultArea">
-    <div class="result-detail">Pronto para a aventura.</div>
-  </div>
+    <div class="input-row">
+        <input type="text" id="diceInput" placeholder="Ex: 1d20+5">
+        <button class="roll-btn" onclick="roll()">Roll</button>
+    </div>
+    <div class="quick-btns">
+        <button onclick="quickRoll('1d4')">d4</button>
+        <button onclick="quickRoll('1d6')">d6</button>
+        <button onclick="quickRoll('1d20')">d20</button>
+    </div>
+    <div class="result-area" id="resultArea">
+        <div class="result-detail">Aguardando rolagem...</div>
+    </div>
 </div>
 
-<div class="status waiting" id="statusBar">Iniciando comunicação...</div>
+<div id="statusBar" class="status waiting">Iniciando comunicação...</div>
 
 <script>
-// ============================================================
-// Matrix Widget API - Fix para Element Desktop
-// ============================================================
-let widgetId = new URLSearchParams(window.location.search).get('widgetId');
-let widgetReady = false;
-const inIframe = (window.parent !== window);
+    let widgetId = new URLSearchParams(window.location.search).get('widgetId');
+    let widgetReady = false;
 
-function setStatus(type, text) {
-  const bar = document.getElementById('statusBar');
-  if (bar) {
-    bar.className = 'status ' + type;
-    bar.textContent = text;
-  }
-}
-
-// Resposta obrigatória para o Element não travar
-function sendReply(originalMsg, response) {
-  window.parent.postMessage({
-    api: originalMsg.api,
-    widgetId: widgetId || originalMsg.widgetId, // Fallback para o ID que vier na mensagem
-    requestid: originalMsg.requestid,
-    action: originalMsg.action,
-    data: originalMsg.data,
-    response: response || {}
-  }, '*');
-}
-
-window.addEventListener('message', (event) => {
-  const msg = event.data;
-  if (!msg || !msg.api) return;
-
-  // Se o widgetId na URL for o placeholder $, pegamos o ID real da mensagem
-  if (!widgetId || widgetId.startsWith('$')) {
-    widgetId = msg.widgetId;
-    console.log('[DiceRoller] Widget ID capturado:', widgetId);
-  }
-
-  if (msg.api === 'toWidget') {
-    // 1. Element pergunta que versões você suporta
-    if (msg.action === 'supported_api_versions') {
-      sendReply(msg, { supported_versions: ['0.0.1', '1.1.0'] });
-    } 
-    // 2. Element pergunta o que você quer fazer (enviar mensagens)
-    else if (msg.action === 'capabilities') {
-      sendReply(msg, { 
-        capabilities: ['org.matrix.msc2762.send.event:m.room.message'] 
-      });
-    } 
-    // 3. O PASSO CRUCIAL: Element diz "OK, você tem as permissões"
-    else if (msg.action === 'notify_capabilities') {
-      widgetReady = true;
-      setStatus('connected', 'Conectado! Rolagens liberadas.');
-      sendReply(msg, {}); // O Element precisa desse ACK para destravar
-      console.log('[DiceRoller] Handshake concluído!');
-      setTimeout(() => document.getElementById('statusBar').style.opacity = '0.3', 3000);
-    } 
-    // 4. Responder qualquer outra coisa (tema, etc) para não dar 'unhandled'
-    else {
-      sendReply(msg, {});
+    // Função para responder ao Element
+    function sendReply(msg, response = {}) {
+        window.parent.postMessage({
+            api: msg.api,
+            widgetId: widgetId || msg.widgetId,
+            requestid: msg.requestid,
+            action: msg.action,
+            data: msg.data,
+            response: response
+        }, '*');
     }
-  }
-});
 
-// Envia a rolagem
-function sendMessageToRoom(plain, html) {
-  if (!widgetReady) {
-    console.error('[DiceRoller] Erro: Widget não está pronto ou sem permissão.');
-    return;
-  }
-  
-  window.parent.postMessage({
-    api: 'fromWidget',
-    widgetId: widgetId,
-    requestid: 'roll_' + Date.now(),
-    action: 'send_event',
-    data: {
-      type: 'm.room.message',
-      content: {
-        msgtype: 'm.notice',
-        body: plain,
-        format: 'org.matrix.custom.html',
-        formatted_body: html
-      }
+    // Escuta as mensagens do sistema Matrix/Element
+    window.addEventListener('message', (event) => {
+        const msg = event.data;
+        if (!msg || !msg.api) return;
+
+        // "Pesca" o ID real se o da URL for o placeholder do GitHub
+        if (!widgetId || widgetId.startsWith('$')) {
+            widgetId = msg.widgetId;
+        }
+
+        if (msg.api === 'toWidget') {
+            if (msg.action === 'supported_api_versions') {
+                sendReply(msg, { supported_versions: ['0.0.1', '1.1.0'] });
+            } 
+            else if (msg.action === 'capabilities') {
+                sendReply(msg, { capabilities: ['org.matrix.msc2762.send.event:m.room.message'] });
+            } 
+            else if (msg.action === 'notify_capabilities') {
+                widgetReady = true;
+                document.getElementById('statusBar').textContent = "Conectado!";
+                document.getElementById('statusBar').className = "status connected";
+                sendReply(msg); // Confirmação crucial
+            } 
+            else {
+                sendReply(msg); // Dá um "OK" em qualquer outra coisa (tema, etc)
+            }
+        }
+    });
+
+    // Avisa que o widget está pronto para começar o papo
+    if (window.parent !== window) {
+        window.parent.postMessage({
+            api: 'fromWidget',
+            widgetId: widgetId,
+            requestid: 'init_' + Date.now(),
+            action: 'content_loaded',
+            data: {}
+        }, '*');
     }
-  }, '*');
-}
 
-// Sinaliza que o widget carregou para iniciar o papo
-if (inIframe) {
-  setTimeout(() => {
-    window.parent.postMessage({
-      api: 'fromWidget',
-      widgetId: widgetId,
-      requestid: 'init_' + Date.now(),
-      action: 'content_loaded',
-      data: {}
-    }, '*');
-  }, 100);
-} else {
-  setStatus('disconnected', 'Modo Standalone (Fora do Element)');
-}
+    // Lógica de Rolagem
+    function roll() {
+        const input = document.getElementById('diceInput').value.toLowerCase();
+        const match = input.match(/^(\d+)d(\d+)([+-]\d+)?$/);
+        if (!match) return;
 
-// --- Sua lógica de dados original abaixo ---
-function quickRoll(n) { document.getElementById('diceInput').value = n; roll(); }
+        const num = parseInt(match[1]);
+        const sides = parseInt(match[2]);
+        const mod = match[3] ? parseInt(match[3]) : 0;
+        
+        let sum = 0;
+        for (let i = 0; i < num; i++) sum += Math.floor(Math.random() * sides) + 1;
+        const total = sum + mod;
 
-function roll() {
-  const input = document.getElementById('diceInput');
-  const notation = input.value.trim().toLowerCase();
-  if (!notation) return;
+        document.getElementById('resultArea').innerHTML = `<div class="result-total">${total}</div>`;
 
-  try {
-    const match = notation.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-    if (!match) throw new Error("Use: 1d20 ou 2d6+3");
-
-    const num = parseInt(match[1]);
-    const sides = parseInt(match[2]);
-    const mod = match[3] ? parseInt(match[3]) : 0;
-    
-    let rolls = [];
-    let sum = 0;
-    for (let i = 0; i < num; i++) {
-      let r = Math.floor(Math.random() * sides) + 1;
-      rolls.push(r);
-      sum += r;
+        if (widgetReady) {
+            window.parent.postMessage({
+                api: 'fromWidget',
+                widgetId: widgetId,
+                requestid: 'roll_' + Date.now(),
+                action: 'send_event',
+                data: {
+                    type: 'm.room.message',
+                    content: {
+                        msgtype: 'm.notice',
+                        body: `🎲 ${input} ➔ Result: ${total}`
+                    }
+                }
+            }, '*');
+        }
     }
-    const total = sum + mod;
 
-    const resArea = document.getElementById('resultArea');
-    resArea.innerHTML = `<div class="result-total show">${total}</div>
-                         <div class="result-detail">${num}d${sides}${match[3]||''}: [${rolls.join(', ')}]</div>`;
-    
-    const plain = `🎲 ${notation} ➔ [${rolls.join(', ')}] ${match[3]||''} = ${total}`;
-    const html = `🎲 <b>${notation}</b> ➔ [${rolls.join(', ')}] ${match[3]||''} = <b>${total}</b>`;
-    sendMessageToRoom(plain, html);
-
-  } catch (e) {
-    document.getElementById('resultArea').innerHTML = `<div style="color:var(--red)">${e.message}</div>`;
-  }
-}
+    function quickRoll(n) { document.getElementById('diceInput').value = n; roll(); }
 </script>
 </body>
 </html>
