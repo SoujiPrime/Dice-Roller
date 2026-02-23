@@ -183,22 +183,26 @@
 <div class="status waiting" id="statusBar">Iniciando comunicação...</div>
 
 <script>
-// --- Configurações da Matrix Widget API ---
+// ============================================================
+// Matrix Widget API - Fix para Element Desktop
+// ============================================================
 let widgetId = new URLSearchParams(window.location.search).get('widgetId');
 let widgetReady = false;
 const inIframe = (window.parent !== window);
 
 function setStatus(type, text) {
   const bar = document.getElementById('statusBar');
-  bar.className = 'status ' + type;
-  bar.textContent = text;
+  if (bar) {
+    bar.className = 'status ' + type;
+    bar.textContent = text;
+  }
 }
 
-// Responde ao Element (toWidget)
+// Resposta obrigatória para o Element não travar
 function sendReply(originalMsg, response) {
   window.parent.postMessage({
     api: originalMsg.api,
-    widgetId: widgetId || originalMsg.widgetId,
+    widgetId: widgetId || originalMsg.widgetId, // Fallback para o ID que vier na mensagem
     requestid: originalMsg.requestid,
     action: originalMsg.action,
     data: originalMsg.data,
@@ -206,40 +210,49 @@ function sendReply(originalMsg, response) {
   }, '*');
 }
 
-// Escuta mensagens do Element
 window.addEventListener('message', (event) => {
   const msg = event.data;
   if (!msg || !msg.api) return;
 
-  // Captura o ID real se o da URL for inválido
+  // Se o widgetId na URL for o placeholder $, pegamos o ID real da mensagem
   if (!widgetId || widgetId.startsWith('$')) {
     widgetId = msg.widgetId;
+    console.log('[DiceRoller] Widget ID capturado:', widgetId);
   }
 
   if (msg.api === 'toWidget') {
+    // 1. Element pergunta que versões você suporta
     if (msg.action === 'supported_api_versions') {
       sendReply(msg, { supported_versions: ['0.0.1', '1.1.0'] });
     } 
+    // 2. Element pergunta o que você quer fazer (enviar mensagens)
     else if (msg.action === 'capabilities') {
       sendReply(msg, { 
         capabilities: ['org.matrix.msc2762.send.event:m.room.message'] 
       });
     } 
+    // 3. O PASSO CRUCIAL: Element diz "OK, você tem as permissões"
     else if (msg.action === 'notify_capabilities') {
       widgetReady = true;
-      setStatus('connected', 'Conectado ao chat!');
-      sendReply(msg, {});
+      setStatus('connected', 'Conectado! Rolagens liberadas.');
+      sendReply(msg, {}); // O Element precisa desse ACK para destravar
+      console.log('[DiceRoller] Handshake concluído!');
       setTimeout(() => document.getElementById('statusBar').style.opacity = '0.3', 3000);
     } 
+    // 4. Responder qualquer outra coisa (tema, etc) para não dar 'unhandled'
     else {
-      sendReply(msg, {}); // Responde outras ações para evitar timeouts
+      sendReply(msg, {});
     }
   }
 });
 
-// Envia o resultado para o chat
+// Envia a rolagem
 function sendMessageToRoom(plain, html) {
-  if (!widgetReady || !inIframe) return;
+  if (!widgetReady) {
+    console.error('[DiceRoller] Erro: Widget não está pronto ou sem permissão.');
+    return;
+  }
+  
   window.parent.postMessage({
     api: 'fromWidget',
     widgetId: widgetId,
@@ -257,7 +270,7 @@ function sendMessageToRoom(plain, html) {
   }, '*');
 }
 
-// Avisa ao Element que o conteúdo carregou
+// Sinaliza que o widget carregou para iniciar o papo
 if (inIframe) {
   setTimeout(() => {
     window.parent.postMessage({
@@ -267,12 +280,12 @@ if (inIframe) {
       action: 'content_loaded',
       data: {}
     }, '*');
-  }, 500);
+  }, 100);
 } else {
-  setStatus('disconnected', 'Modo Offline (Fora do Element)');
+  setStatus('disconnected', 'Modo Standalone (Fora do Element)');
 }
 
-// --- Lógica de Dados ---
+// --- Sua lógica de dados original abaixo ---
 function quickRoll(n) { document.getElementById('diceInput').value = n; roll(); }
 
 function roll() {
@@ -297,12 +310,10 @@ function roll() {
     }
     const total = sum + mod;
 
-    // UI
     const resArea = document.getElementById('resultArea');
-    resArea.innerHTML = `<div class="result-total rolling">${total}</div>
+    resArea.innerHTML = `<div class="result-total show">${total}</div>
                          <div class="result-detail">${num}d${sides}${match[3]||''}: [${rolls.join(', ')}]</div>`;
     
-    // Chat
     const plain = `🎲 ${notation} ➔ [${rolls.join(', ')}] ${match[3]||''} = ${total}`;
     const html = `🎲 <b>${notation}</b> ➔ [${rolls.join(', ')}] ${match[3]||''} = <b>${total}</b>`;
     sendMessageToRoom(plain, html);
