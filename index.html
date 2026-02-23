@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dice Roller</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #1a1520;
+    --surface: #241e2e;
+    --border: #3a2f4a;
+    --accent: #c4a35a;
+    --accent-glow: #e8c96880;
+    --text: #e8e0f0;
+    --text-dim: #8a7e96;
+    --red: #c45a5a;
+    --green: #5ac47a;
+  }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, #2a1f3a 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 50%, #1f2a3a 0%, transparent 60%);
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+    font-size: 1.3rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 12px;
+    text-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .roller {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .input-row { display: flex; gap: 8px; }
+
+  input[type="text"] {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  input::placeholder { color: var(--text-dim); font-size: 0.85rem; }
+
+  button.roll-btn {
+    background: linear-gradient(135deg, var(--accent), #a8883a);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-family: 'Cinzel', serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    text-transform: uppercase;
+  }
+
+  button.roll-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px var(--accent-glow);
+  }
+
+  button.roll-btn:active { transform: translateY(1px); }
+
+  .quick-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .quick-btns button {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .quick-btns button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #2a2235;
+  }
+
+  .result-area {
+    margin-top: 4px;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .result-total {
+    font-family: 'Cinzel', serif;
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: var(--accent);
+    text-shadow: 0 0 24px var(--accent-glow);
+    line-height: 1;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .result-total.show { opacity: 1; transform: scale(1); }
+
+  .result-detail {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .result-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .status {
+    width: 100%;
+    max-width: 400px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    text-align: center;
+    transition: opacity 0.5s;
+  }
+
+  .status.connected { background: #1a2e1a; border: 1px solid #2a4a2a; color: var(--green); }
+  .status.disconnected { background: #2e1a1a; border: 1px solid #4a2a2a; color: var(--red); }
+  .status.waiting { background: #2e2a1a; border: 1px solid #4a3a2a; color: var(--accent); }
+
+  .error { color: var(--red); font-size: 0.82rem; text-align: center; }
+
+  @keyframes shake {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    20% { transform: scale(1.1) rotate(-3deg); }
+    40% { transform: scale(1.1) rotate(3deg); }
+    60% { transform: scale(1.1) rotate(-2deg); }
+    80% { transform: scale(1.05) rotate(1deg); }
+  }
+  .rolling { animation: shake 0.4s ease-out; }
+</style>
+</head>
+<body>
+
+<h1>&#9876; Dice Roller</h1>
+
+<div class="roller">
+  <div class="input-row">
+    <input type="text" id="diceInput" placeholder="2d6+3, 1d20, 4d8-2..." autocomplete="off" spellcheck="false">
+    <button class="roll-btn" id="rollBtn" onclick="roll()">Roll</button>
+  </div>
+
+  <div class="quick-btns">
+    <button onclick="quickRoll('1d4')">d4</button>
+    <button onclick="quickRoll('1d6')">d6</button>
+    <button onclick="quickRoll('1d8')">d8</button>
+    <button onclick="quickRoll('1d10')">d10</button>
+    <button onclick="quickRoll('1d12')">d12</button>
+    <button onclick="quickRoll('1d20')">d20</button>
+    <button onclick="quickRoll('1d100')">d100</button>
+    <button onclick="quickRoll('2d6')">2d6</button>
+  </div>
+
+  <div class="result-area" id="resultArea">
+    <div class="result-label">Rola os dados!</div>
+  </div>
+</div>
+
+<div class="status waiting" id="statusBar">Conectando ao Element...</div>
+
+<script>
+// ============================================================
+// Matrix Widget API - raw postMessage (handles Desktop origin)
+// ============================================================
+var widgetReady = false;
+var widgetId = null;
+var elementOrigin = null;
+var pendingRequests = {};
+var reqCounter = 0;
+var inIframe = (window.parent !== window);
+
+// Extract widget ID from URL (Element passes it as a query param)
+(function() {
+  var search = window.location.search || '';
+  var hash = window.location.hash || '';
+  // Try search params first
+  var params = new URLSearchParams(search);
+  widgetId = params.get('widgetId');
+  // Try hash params (Element sometimes puts params after #)
+  if (!widgetId && hash.indexOf('?') !== -1) {
+    params = new URLSearchParams(hash.substring(hash.indexOf('?')));
+    widgetId = params.get('widgetId');
+  }
+  // Also try just the hash without ?
+  if (!widgetId && hash.indexOf('widgetId=') !== -1) {
+    params = new URLSearchParams(hash.substring(1));
+    widgetId = params.get('widgetId');
+  }
+  console.log('[DiceRoller] widgetId:', widgetId);
+  console.log('[DiceRoller] location:', window.location.href);
+  console.log('[DiceRoller] inIframe:', inIframe);
+})();
+
+// Reply to a toWidget request from Element
+function replyToElement(originalMsg, responseData) {
+  if (!inIframe) return;
+  var reply = {
+    api: originalMsg.api,
+    widgetId: originalMsg.widgetId,
+    requestid: originalMsg.requestid,
+    action: originalMsg.action,
+    data: originalMsg.data,
+    response: responseData || {}
+  };
+  console.log('[DiceRoller] Replying:', reply.action, reply);
+  // Use '*' as origin - critical for Desktop app where origin may vary
+  window.parent.postMessage(reply, '*');
+}
+
+// Send a fromWidget request to Element
+function sendToElement(action, data) {
+  if (!inIframe) return null;
+  var id = 'dice_' + (++reqCounter) + '_' + Date.now();
+  var msg = {
+    api: 'fromWidget',
+    widgetId: widgetId,
+    requestid: id,
+    action: action,
+    data: data || {}
+  };
+  console.log('[DiceRoller] Sending:', action, msg);
+  window.parent.postMessage(msg, '*');
+  return id;
+}
+
+// Listen for ALL messages from Element
+window.addEventListener('message', function(event) {
+  var msg = event.data;
+  if (!msg || typeof msg !== 'object') return;
+
+  // Log everything we receive for debugging
+  if (msg.api) {
+    console.log('[DiceRoller] Received:', msg.api, msg.action, 'from', event.origin, msg);
+  }
+
+  // Remember the Element origin
+  if (event.origin && event.origin !== 'null') {
+    elementOrigin = event.origin;
+  }
+
+  // Handle toWidget messages (Element -> Widget)
+  if (msg.api === 'toWidget') {
+
+    // Version check
+    if (msg.action === 'supported_api_versions') {
+      replyToElement(msg, {
+        supported_versions: ['0.0.1', '0.0.2']
+      });
+      return;
+    }
+
+    // Capability request - tell Element what we want
+    if (msg.action === 'capabilities') {
+      replyToElement(msg, {
+        capabilities: [
+          'org.matrix.msc2762.send.event:m.room.message'
+        ]
+      });
+      return;
+    }
+
+    // Capabilities approved notification
+    if (msg.action === 'notify_capabilities') {
+      var approved = (msg.data && msg.data.approved) || [];
+      console.log('[DiceRoller] Capabilities approved:', approved);
+      if (approved.length > 0) {
+        widgetReady = true;
+        setStatus('connected', 'Conectado! Rolagens serao postadas no chat.');
+        setTimeout(function() {
+          document.getElementById('statusBar').style.opacity = '0.4';
+        }, 4000);
+      } else {
+        widgetReady = false;
+        setStatus('disconnected', 'Permissao negada. Rolagens aparecerao apenas aqui.');
+      }
+      replyToElement(msg, {});
+      return;
+    }
+
+    // Theme change or any other action - just acknowledge
+    replyToElement(msg, {});
+  }
+
+  // Handle fromWidget responses (replies to our requests)
+  if (msg.api === 'fromWidget' && msg.response !== undefined && msg.requestid) {
+    if (pendingRequests[msg.requestid]) {
+      pendingRequests[msg.requestid](msg.response);
+      delete pendingRequests[msg.requestid];
+    }
+  }
+});
+
+function setStatus(type, text) {
+  var bar = document.getElementById('statusBar');
+  bar.className = 'status ' + type;
+  bar.textContent = text;
+  bar.style.opacity = '1';
+}
+
+function sendMessageToRoom(plainText, htmlText) {
+  if (!widgetReady || !inIframe) return;
+
+  var id = 'dice_' + (++reqCounter) + '_' + Date.now();
+  var msg = {
+    api: 'fromWidget',
+    widgetId: widgetId,
+    requestid: id,
+    action: 'send_event',
+    data: {
+      type: 'm.room.message',
+      content: {
+        msgtype: 'm.notice',
+        body: plainText,
+        format: 'org.matrix.custom.html',
+        formatted_body: htmlText || plainText
+      }
+    }
+  };
+
+  console.log('[DiceRoller] Sending event to room:', msg);
+  window.parent.postMessage(msg, '*');
+}
+
+// ============================================================
+// Dice Logic
+// ============================================================
+var input = document.getElementById('diceInput');
+var resultArea = document.getElementById('resultArea');
+
+input.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') roll();
+});
+
+function quickRoll(notation) {
+  input.value = notation;
+  roll();
+}
+
+function parseDice(str) {
+  str = str.replace(/\s+/g, '').toLowerCase();
+  var parts = [];
+  var regex = /([+-]?)(\d*)d(\d+)|([+-]?\d+)/g;
+  var match;
+  var hasAnyDice = false;
+  while ((match = regex.exec(str)) !== null) {
+    if (match[3]) {
+      hasAnyDice = true;
+      var sign = match[1] === '-' ? -1 : 1;
+      var count = parseInt(match[2] || '1');
+      var faces = parseInt(match[3]);
+      if (count < 1 || count > 100) throw new Error('Quantidade de dados: 1-100');
+      if (faces < 2 || faces > 1000) throw new Error('Faces do dado: 2-1000');
+      parts.push({ type: 'dice', count: count, faces: faces, sign: sign });
+    } else if (match[4]) {
+      parts.push({ type: 'mod', value: parseInt(match[4]) });
+    }
+  }
+  if (!hasAnyDice) throw new Error('Use a notacao: 2d6, 1d20+5...');
+  return parts;
+}
+
+function rollDice(parts) {
+  var total = 0;
+  var rolls = [];
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i];
+    if (part.type === 'dice') {
+      var diceRolls = [];
+      for (var j = 0; j < part.count; j++) {
+        diceRolls.push(Math.floor(Math.random() * part.faces) + 1);
+      }
+      total += diceRolls.reduce(function(a, b) { return a + b; }, 0) * part.sign;
+      rolls.push({ label: (part.sign === -1 ? '-' : '') + part.count + 'd' + part.faces, values: diceRolls, sign: part.sign });
+    } else {
+      total += part.value;
+      rolls.push({ label: (part.value >= 0 ? '+' : '') + part.value, values: [], sign: 1 });
+    }
+  }
+  return { total: total, rolls: rolls };
+}
+
+function formatRolls(rolls) {
+  return rolls.map(function(r) {
+    if (r.values.length > 0) return r.label + ' [' + r.values.join(', ') + ']';
+    return r.label;
+  }).join(' ');
+}
+
+function formatRollsHTML(rolls) {
+  return rolls.map(function(r) {
+    if (r.values.length > 0) {
+      var vals = r.values.map(function(v) {
+        return (r.values.length === 1) ? '<b>' + v + '</b>' : '' + v;
+      }).join(', ');
+      return r.label + ' [' + vals + ']';
+    }
+    return r.label;
+  }).join(' ');
+}
+
+function roll() {
+  var notation = input.value.trim();
+  if (!notation) { input.focus(); return; }
+  try {
+    var parts = parseDice(notation);
+    var result = rollDice(parts);
+    var detail = formatRolls(result.rolls);
+
+    var btn = document.getElementById('rollBtn');
+    btn.classList.remove('rolling');
+    void btn.offsetWidth;
+    btn.classList.add('rolling');
+
+    resultArea.innerHTML =
+      '<div class="result-total show">' + result.total + '</div>' +
+      '<div class="result-detail">' + detail + '</div>';
+    var totalEl = resultArea.querySelector('.result-total');
+    totalEl.classList.remove('show');
+    void totalEl.offsetWidth;
+    totalEl.classList.add('show');
+
+    var plainText = '\uD83C\uDFB2 ' + notation + ' \u2192 ' + detail + ' = ' + result.total;
+    var htmlText = '\uD83C\uDFB2 <b>' + notation + '</b> \u2192 ' + formatRollsHTML(result.rolls) + ' = <b>' + result.total + '</b>';
+    sendMessageToRoom(plainText, htmlText);
+  } catch (err) {
+    resultArea.innerHTML = '<div class="error">' + err.message + '</div>';
+  }
+}
+
+// ============================================================
+// Init
+// ============================================================
+if (!inIframe) {
+  setStatus('disconnected', 'Modo standalone. Abra como widget no Element para postar no chat.');
+} else {
+  // Send content_loaded to tell Element we're ready to talk
+  setTimeout(function() {
+    sendToElement('content_loaded', {});
+  }, 100);
+
+  setTimeout(function() {
+    if (!widgetReady) {
+      setStatus('disconnected', 'Nao conectou ao Element. Verifique o console (Ctrl+Shift+I).');
+    }
+  }, 12000);
+}
+
+input.focus();
+</script>
+
+</body>
+</html>
