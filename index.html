@@ -3,24 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dice Roller RPG</title>
+<title>Dice Roller</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=JetBrains+Mono&display=swap');
-  :root { --bg: #1a1520; --surface: #241e2e; --border: #3a2f4a; --accent: #c4a35a; --text: #e8e0f0; --red: #c45a5a; --green: #5ac47a; }
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=JetBrains+Mono:wght@400;700&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; }
-  h1 { font-family: 'Cinzel', serif; color: var(--accent); margin-bottom: 20px; font-size: 1.5rem; text-shadow: 0 0 10px rgba(196, 163, 90, 0.5); }
-  .roller { width: 100%; max-width: 350px; background: var(--surface); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
-  .input-row { display: flex; gap: 8px; margin-bottom: 15px; }
-  input { flex: 1; background: #120e16; border: 1px solid var(--border); padding: 10px; color: #fff; border-radius: 6px; outline: none; }
-  .roll-btn { background: var(--accent); color: var(--bg); padding: 10px 20px; font-weight: bold; cursor: pointer; border: none; border-radius: 6px; font-family: 'Cinzel', serif; }
-  .quick-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 15px; }
-  .quick-btns button { background: var(--border); color: var(--text); padding: 5px; font-size: 0.8rem; border: none; cursor: pointer; border-radius: 4px; }
-  .result-area { text-align: center; min-height: 60px; padding: 10px; border-top: 1px solid var(--border); }
-  .result-total { font-size: 2.5rem; color: var(--accent); font-family: 'Cinzel', serif; }
-  .status { font-size: 0.7rem; margin-top: 15px; padding: 8px; border-radius: 4px; text-align: center; width: 100%; max-width: 350px; transition: all 0.3s; }
-  .waiting { background: #332a15; color: var(--accent); border: 1px solid var(--accent); }
-  .connected { background: #1a2e1a; color: var(--green); border: 1px solid var(--green); }
+  :root {
+    --bg: #1a1520; --surface: #241e2e; --border: #3a2f4a;
+    --accent: #c4a35a; --accent-glow: #e8c96880;
+    --text: #e8e0f0; --text-dim: #8a7e96; --red: #c45a5a; --green: #5ac47a;
+  }
+  body {
+    font-family: 'JetBrains Mono', monospace; background: var(--bg); color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 16px;
+    background-image: radial-gradient(ellipse at 20% 50%, #2a1f3a 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, #1f2a3a 0%, transparent 60%);
+  }
+  h1 { font-family: 'Cinzel', serif; font-weight: 800; font-size: 1.3rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 12px; text-shadow: 0 0 20px var(--accent-glow); }
+  .roller { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+  .input-row { display: flex; gap: 8px; }
+  input[type="text"] { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'JetBrains Mono', monospace; outline: none; }
+  input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+  button.roll-btn { background: linear-gradient(135deg, var(--accent), #a8883a); color: var(--bg); border: none; border-radius: 8px; padding: 10px 20px; font-family: 'Cinzel', serif; font-weight: 800; cursor: pointer; text-transform: uppercase; }
+  .quick-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .quick-btns button { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; color: var(--text-dim); cursor: pointer; font-size: 0.78rem; }
+  .result-area { margin-top: 4px; min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+  .result-total { font-family: 'Cinzel', serif; font-size: 2.8rem; font-weight: 800; color: var(--accent); text-shadow: 0 0 24px var(--accent-glow); }
+  .result-detail { font-size: 0.82rem; color: var(--text-dim); text-align: center; }
+  .status { width: 100%; max-width: 400px; margin-top: 12px; padding: 8px 12px; border-radius: 6px; font-size: 0.72rem; text-align: center; }
+  .status.connected { background: #1a2e1a; border: 1px solid #2a4a2a; color: var(--green); }
+  .status.waiting { background: #2e2a1a; border: 1px solid #4a3a2a; color: var(--accent); }
+  .error { color: var(--red); font-size: 0.82rem; }
+  @keyframes shake { 0%, 100% { transform: scale(1); } 20% { transform: scale(1.1) rotate(-3deg); } 40% { transform: scale(1.1) rotate(3deg); } }
+  .rolling { animation: shake 0.4s ease-out; }
 </style>
 </head>
 <body>
@@ -29,109 +42,159 @@
 
 <div class="roller">
   <div class="input-row">
-    <input type="text" id="diceInput" placeholder="Ex: 1d20+5">
-    <button class="roll-btn" onclick="roll()">Roll</button>
+    <input type="text" id="diceInput" placeholder="2d6+3, 1d20..." autocomplete="off">
+    <button class="roll-btn" id="rollBtn" onclick="roll()">Roll</button>
   </div>
   <div class="quick-btns">
-    <button onclick="q('1d4')">d4</button>
-    <button onclick="q('1d6')">d6</button>
-    <button onclick="q('1d8')">d8</button>
-    <button onclick="q('1d10')">d10</button>
-    <button onclick="q('1d12')">d12</button>
-    <button onclick="q('1d20')">d20</button>
-    <button onclick="q('1d100')">d100</button>
-    <button onclick="q('2d6')">2d6</button>
+    <button onclick="quickRoll('1d4')">d4</button>
+    <button onclick="quickRoll('1d6')">d6</button>
+    <button onclick="quickRoll('1d8')">d8</button>
+    <button onclick="quickRoll('1d10')">d10</button>
+    <button onclick="quickRoll('1d12')">d12</button>
+    <button onclick="quickRoll('1d20')">d20</button>
+    <button onclick="quickRoll('2d6')">2d6</button>
   </div>
-  <div id="resultArea" class="result-area">Aguardando rolo...</div>
+  <div class="result-area" id="resultArea">
+    <div class="result-detail">Rola os dados!</div>
+  </div>
 </div>
 
-<div id="status" class="status waiting">Iniciando comunicação com Element...</div>
+<div class="status waiting" id="statusBar">Iniciando comunicação...</div>
 
 <script>
-  let wId = null;
-  let ready = false;
+// --- LOGICA DE COMUNICAÇÃO (O CONSERTO) ---
+var widgetId = new URLSearchParams(window.location.search).get('widgetId');
+var widgetReady = false;
 
-  // Função para responder ao Element exatamente no formato esperado
-  function sendResponse(originalMsg, responseData) {
-    window.parent.postMessage({
-      api: 'toWidget', // Respostas a toWidget devem manter o cabeçalho api: toWidget
-      action: originalMsg.action,
-      requestid: originalMsg.requestid,
-      widgetId: originalMsg.widgetId,
-      data: originalMsg.data,
-      response: responseData
+function setStatus(type, text) {
+  var bar = document.getElementById('statusBar');
+  bar.className = 'status ' + type;
+  bar.textContent = text;
+}
+
+window.addEventListener('message', function(event) {
+  var msg = event.data;
+  if (!msg || !msg.api) return;
+
+  // Sincroniza o ID se vier do Element
+  if (!widgetId || widgetId.startsWith('$')) widgetId = msg.widgetId;
+
+  if (msg.api === 'toWidget') {
+    var response = {};
+    if (msg.action === 'supported_api_versions') response = { supported_versions: ['0.0.1', '1.1.0'] };
+    else if (msg.action === 'capabilities') response = { capabilities: ['org.matrix.msc2762.send.event:m.room.message'] };
+    else if (msg.action === 'notify_capabilities') {
+      widgetReady = true;
+      setStatus('connected', 'Conectado! As rolagens serão postadas.');
+    }
+
+    // Resposta obrigatória para o Element não travar
+    event.source.postMessage({
+      api: 'toWidget',
+      action: msg.action,
+      requestid: msg.requestid,
+      widgetId: widgetId,
+      data: msg.data,
+      response: response
     }, '*');
   }
+});
 
-  window.addEventListener('message', (ev) => {
-    const msg = ev.data;
-    if (!msg || !msg.api) return;
+function sendMessageToRoom(plain, html) {
+  if (!widgetReady) return;
+  window.parent.postMessage({
+    api: 'fromWidget',
+    action: 'send_event',
+    widgetId: widgetId,
+    requestid: 'roll-' + Date.now(),
+    data: {
+      type: 'm.room.message',
+      content: { msgtype: 'm.notice', body: plain, format: 'org.matrix.custom.html', formatted_body: html }
+    }
+  }, '*');
+}
 
-    // Sincroniza o ID do widget
-    if (!wId) wId = msg.widgetId;
+// Inicia o handshake
+if (window.parent !== window) {
+  window.parent.postMessage({ api: 'fromWidget', action: 'content_loaded', widgetId: widgetId, requestid: 'init-' + Date.now(), data: {} }, '*');
+}
 
-    if (msg.api === 'toWidget') {
-      if (msg.action === 'supported_api_versions') {
-        sendResponse(msg, { supported_versions: ['0.0.1', '1.1.0'] });
-      } 
-      else if (msg.action === 'capabilities') {
-        // Solicitando permissão para enviar mensagens
-        sendResponse(msg, { capabilities: ['m.room.message', 'org.matrix.msc2762.send.event:m.room.message'] });
-      } 
-      else if (msg.action === 'notify_capabilities') {
-        ready = true;
-        const s = document.getElementById('status');
-        s.innerText = "Conectado! As rolagens serão enviadas.";
-        s.className = "status connected";
-        sendResponse(msg, {}); // ACK vazio para confirmar
-      } 
-      else {
-        sendResponse(msg, {}); // Responde qualquer outra coisa para evitar timeouts
+// --- SUA LÓGICA ORIGINAL DE DADOS (RESTAURADA) ---
+var input = document.getElementById('diceInput');
+var resultArea = document.getElementById('resultArea');
+
+function quickRoll(notation) { input.value = notation; roll(); }
+
+function parseDice(str) {
+  str = str.replace(/\s+/g, '').toLowerCase();
+  var parts = [];
+  var regex = /([+-]?)(\d*)d(\d+)|([+-]?\d+)/g;
+  var match;
+  var hasAnyDice = false;
+  while ((match = regex.exec(str)) !== null) {
+    if (match[3]) {
+      hasAnyDice = true;
+      var sign = match[1] === '-' ? -1 : 1;
+      var count = parseInt(match[2] || '1');
+      var faces = parseInt(match[3]);
+      parts.push({ type: 'dice', count: count, faces: faces, sign: sign });
+    } else if (match[4]) {
+      parts.push({ type: 'mod', value: parseInt(match[4]) });
+    }
+  }
+  if (!hasAnyDice) throw new Error('Use: 2d6+3, 1d20...');
+  return parts;
+}
+
+function rollDice(parts) {
+  var total = 0;
+  var rolls = [];
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i];
+    if (part.type === 'dice') {
+      var diceRolls = [];
+      for (var j = 0; j < part.count; j++) {
+        diceRolls.push(Math.floor(Math.random() * part.faces) + 1);
       }
-    }
-  });
-
-  // Notifica que o widget carregou
-  if (window.parent !== window) {
-    window.parent.postMessage({
-      api: 'fromWidget',
-      action: 'content_loaded',
-      widgetId: new URLSearchParams(window.location.search).get('widgetId'),
-      requestid: 'init-' + Date.now(),
-      data: {}
-    }, '*');
-  }
-
-  function roll() {
-    const val = document.getElementById('diceInput').value.trim().toLowerCase();
-    const m = val.match(/^(\d+)d(\d+)([+-]\d+)?$/);
-    if (!m) return;
-
-    const n = parseInt(m[1]), s = parseInt(m[2]), mod = m[3] ? parseInt(m[3]) : 0;
-    let rolls = [];
-    for(let i=0; i<n; i++) rolls.push(Math.floor(Math.random()*s)+1);
-    const total = rolls.reduce((a,b)=>a+b, 0) + mod;
-
-    document.getElementById('resultArea').innerHTML = `<div class="result-total">${total}</div>`;
-
-    if (ready) {
-      window.parent.postMessage({
-        api: 'fromWidget',
-        action: 'send_event',
-        widgetId: wId,
-        requestid: 'roll-' + Date.now(),
-        data: {
-          type: 'm.room.message',
-          content: {
-            msgtype: 'm.notice',
-            body: `🎲 ${val} ➔ [${rolls.join(', ')}] = ${total}`
-          }
-        }
-      }, '*');
+      total += diceRolls.reduce(function(a, b) { return a + b; }, 0) * part.sign;
+      rolls.push({ label: (part.sign === -1 ? '-' : '') + part.count + 'd' + part.faces, values: diceRolls });
+    } else {
+      total += part.value;
+      rolls.push({ label: (part.value >= 0 ? '+' : '') + part.value, values: [] });
     }
   }
+  return { total: total, rolls: rolls };
+}
 
-  function q(v) { document.getElementById('diceInput').value = v; roll(); }
+function formatRolls(rolls) {
+  return rolls.map(function(r) {
+    if (r.values.length > 0) return r.label + ' [' + r.values.join(', ') + ']';
+    return r.label;
+  }).join(' ');
+}
+
+function roll() {
+  var notation = input.value.trim();
+  if (!notation) return;
+  try {
+    var parts = parseDice(notation);
+    var result = rollDice(parts);
+    var detail = formatRolls(result.rolls);
+
+    var btn = document.getElementById('rollBtn');
+    btn.classList.remove('rolling');
+    void btn.offsetWidth;
+    btn.classList.add('rolling');
+
+    resultArea.innerHTML = '<div class="result-total">' + result.total + '</div>' +
+                           '<div class="result-detail">' + detail + '</div>';
+    
+    sendMessageToRoom('🎲 ' + notation + ' → ' + detail + ' = ' + result.total, 
+                      '🎲 <b>' + notation + '</b> → ' + detail + ' = <b>' + result.total + '</b>');
+  } catch (err) {
+    resultArea.innerHTML = '<div class="error">' + err.message + '</div>';
+  }
+}
 </script>
 </body>
 </html>
