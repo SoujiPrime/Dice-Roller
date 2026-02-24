@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚔ Dice Roller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f13; --surface: #1a1a24; --border: #2a2a3a;
+    --text: #e0dfe8; --text-dim: #6e6d80;
+    --accent: #c8a2ff; --accent-glow: #c8a2ff44;
+    --red: #ff6b6b; --green: #6bffa8; --yellow: #ffd96b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 16px; font-size: 13px; overflow-y: auto;
+  }
+  h1 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.02em; }
+  .status-bar {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 12px;
+    font-size: 0.68rem; color: var(--text-dim); padding: 4px 8px;
+    background: var(--surface); border-radius: 4px; border: 1px solid var(--border);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-dim); transition: background 0.3s; flex-shrink: 0;
+  }
+  .status-dot.connected { background: var(--green); }
+  .status-dot.partial { background: var(--yellow); }
+  .status-dot.standalone { background: var(--accent); }
+  .roller {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px; margin-bottom: 12px;
+  }
+  .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  input[type="text"] {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px; color: var(--text);
+    font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.15s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+  .roll-btn {
+    background: var(--accent); color: var(--bg); border: none; border-radius: 6px;
+    padding: 8px 18px; font-family: inherit; font-weight: 700; font-size: 0.85rem;
+    cursor: pointer; transition: transform 0.1s, box-shadow 0.15s; white-space: nowrap;
+  }
+  .roll-btn:hover { box-shadow: 0 0 12px var(--accent-glow); }
+  .roll-btn:active { transform: scale(0.96); }
+  .quick-btns { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; }
+  .quick-btns button {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 4px 10px; color: var(--text-dim); font-family: inherit;
+    font-size: 0.72rem; cursor: pointer; transition: all 0.15s;
+  }
+  .quick-btns button:hover { border-color: var(--accent); color: var(--accent); }
+  .result-area { text-align: center; padding: 10px 0 4px; min-height: 48px; }
+  .result-label { color: var(--text-dim); font-size: 0.82rem; }
+  .result-total {
+    font-size: 2.2rem; font-weight: 700; color: var(--accent);
+    opacity: 0; transform: scale(0.8);
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .result-total.show { opacity: 1; transform: scale(1); }
+  .result-detail { color: var(--text-dim); font-size: 0.75rem; margin-top: 2px; }
+
+  /* Copy button */
+  .copy-area {
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    gap: 8px;
+  }
+  .copy-btn {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 14px; color: var(--text-dim); font-family: inherit;
+    font-size: 0.72rem; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+  .copy-btn .icon { font-size: 0.85rem; }
+
+  .auto-copy-toggle {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.65rem; color: var(--text-dim);
+  }
+  .auto-copy-toggle label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .toggle-switch {
+    position: relative; width: 28px; height: 16px;
+    background: var(--border); border-radius: 8px; cursor: pointer; transition: background 0.2s;
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; background: var(--text-dim);
+    border-radius: 50%; transition: all 0.2s;
+  }
+  .toggle-switch.active { background: var(--accent); }
+  .toggle-switch.active::after { left: 14px; background: var(--bg); }
+
+  /* Toast notification */
+  .toast {
+    position: fixed; top: 12px; right: 12px;
+    background: var(--green); color: var(--bg);
+    padding: 6px 14px; border-radius: 6px;
+    font-family: inherit; font-size: 0.72rem; font-weight: 700;
+    opacity: 0; transform: translateY(-10px);
+    transition: all 0.25s ease-out;
+    pointer-events: none; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .history {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; max-height: 200px; overflow-y: auto;
+  }
+  .history-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 1px solid var(--border);
+    font-size: 0.75rem; animation: slideIn 0.2s ease-out;
+    cursor: pointer; transition: background 0.1s;
+  }
+  .history-item:hover { background: var(--bg); }
+  .history-item.no-anim { animation: none; }
+  .history-item:last-child { border-bottom: none; }
+  .history-item .notation { color: var(--text); font-weight: 700; min-width: 55px; }
+  .history-item .dice-vals { color: var(--text-dim); font-size: 0.72rem; }
+  .history-item .total { color: var(--accent); font-weight: 700; }
+  .history-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
+  }
+  .history-header span {
+    font-size: 0.72rem; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .clear-btn {
+    background: none; border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 8px; color: var(--text-dim); font-family: inherit;
+    font-size: 0.65rem; cursor: pointer; transition: all 0.15s;
+  }
+  .clear-btn:hover { border-color: var(--red); color: var(--red); }
+  .error { color: var(--red); font-size: 0.82rem; text-align: center; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes shake {
+    0%,100%{transform:scale(1) rotate(0)} 20%{transform:scale(1.1) rotate(-3deg)}
+    40%{transform:scale(1.1) rotate(3deg)} 60%{transform:scale(1.1) rotate(-2deg)}
+    80%{transform:scale(1.05) rotate(1deg)}
+  }
+  .rolling { animation: shake 0.4s ease-out; }
+</style>
+</head>
+<body>
+<h1>⚔ Dice Roller</h1>
+<div class="status-bar">
+  <div class="status-dot partial" id="statusDot"></div>
+  <span id="statusText">Widget ativo — copiar resultado para colar no chat</span>
+</div>
+<div class="roller">
+  <div class="input-row">
+    <input type="text" id="diceInput" placeholder="2d6+3, 1d20, 4d8-2…" autocomplete="off" spellcheck="false">
+    <button class="roll-btn" id="rollBtn">Roll</button>
+  </div>
+  <div class="quick-btns">
+    <button id="q_d4">d4</button><button id="q_d6">d6</button>
+    <button id="q_d8">d8</button><button id="q_d10">d10</button>
+    <button id="q_d12">d12</button><button id="q_d20">d20</button>
+    <button id="q_d100">d100</button><button id="q_2d6">2d6</button>
+  </div>
+  <div class="result-area" id="resultArea"><div class="result-label">Rola os dados!</div></div>
+  <div class="copy-area">
+    <button class="copy-btn" id="copyBtn" title="Copiar último resultado">
+      <span class="icon">📋</span> Copiar resultado
+    </button>
+    <div class="auto-copy-toggle">
+      <label>
+        <div class="toggle-switch active" id="autoCopyToggle"></div>
+        Auto-copiar
+      </label>
+    </div>
+  </div>
+</div>
+<div class="history">
+  <div class="history-header">
+    <span>Histórico (clique para copiar)</span>
+    <button class="clear-btn" id="clearBtn">Limpar</button>
+  </div>
+  <div id="historyList"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Copiado!</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // === DOM ===
+  var input = document.getElementById('diceInput');
+  var resultArea = document.getElementById('resultArea');
+  var historyList = document.getElementById('historyList');
+  var rollBtn = document.getElementById('rollBtn');
+  var copyBtn = document.getElementById('copyBtn');
+  var autoCopyToggle = document.getElementById('autoCopyToggle');
+  var toast = document.getElementById('toast');
+
+  var qb = {q_d4:'1d4',q_d6:'1d6',q_d8:'1d8',q_d10:'1d10',q_d12:'1d12',q_d20:'1d20',q_d100:'1d100',q_2d6:'2d6'};
+  Object.keys(qb).forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(){input.value=qb[id];doRoll();});
+  });
+  rollBtn.addEventListener('click', doRoll);
+  input.addEventListener('keydown', function(e){if(e.key==='Enter')doRoll();});
+  document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+  // === State ===
+  var lastResult = null;
+  var autoCopy = true;
+  var HKEY = 'diceRollerHistory', HMAX = 50;
+
+  // === Auto-copy toggle ===
+  autoCopyToggle.addEventListener('click', function(){
+    autoCopy = !autoCopy;
+    autoCopyToggle.classList.toggle('active', autoCopy);
+  });
+
+  // === Copy ===
+  function copyText(text) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){
+        showToast('Copiado!');
+      }).catch(function(){
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('Copiado!'); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(function(){ toast.classList.remove('show'); }, 1500);
+    // Also flash the copy button
+    copyBtn.classList.add('copied');
+    setTimeout(function(){ copyBtn.classList.remove('copied'); }, 1500);
+  }
+
+  function formatForChat(notation, detail, total) {
+    return '🎲 ' + notation + ': ' + detail + ' = **' + total + '**';
+  }
+
+  copyBtn.addEventListener('click', function(){
+    if (lastResult) copyText(lastResult);
+  });
+
+  // === History ===
+  function loadH(){try{var d=localStorage.getItem(HKEY);return d?JSON.parse(d):[];}catch(e){return[];}}
+  function saveH(e){try{localStorage.setItem(HKEY,JSON.stringify(e.slice(0,HMAX)));}catch(e){}}
+  function clearHistory(){try{localStorage.removeItem(HKEY);}catch(e){}historyList.innerHTML='';resultArea.innerHTML='<div class="result-label">Rola os dados!</div>';lastResult=null;}
+
+  function renderSavedHistory(){
+    var entries=loadH(); if(!entries.length)return;
+    var l=entries[0];
+    lastResult = l.chatText;
+    resultArea.innerHTML='<div class="result-total show">'+l.total+'</div><div class="result-detail">'+l.detail+'</div>';
+    entries.forEach(function(e){ addHistoryDOM(e, true); });
+  }
+
+  function addHistoryDOM(entry, noAnim) {
+    var it=document.createElement('div');
+    it.className='history-item' + (noAnim?' no-anim':'');
+    it.innerHTML='<span class="notation">'+entry.notation+'</span><span class="dice-vals">'+entry.detail+'</span><span class="total">'+entry.total+'</span>';
+    it.addEventListener('click', function(){ copyText(entry.chatText); });
+    if (noAnim) {
+      historyList.appendChild(it);
+    } else {
+      historyList.insertBefore(it, historyList.firstChild);
+    }
+  }
+
+  function addHistory(notation,detail,total){
+    var chatText = formatForChat(notation,detail,total);
+    var entry = {notation:notation, detail:detail, total:total, chatText:chatText};
+    addHistoryDOM(entry, false);
+    var e=loadH(); e.unshift(entry); saveH(e);
+    lastResult = chatText;
+  }
+
+  // === Dice Logic ===
+  function parseDice(str){
+    str=str.replace(/\s+/g,'').toLowerCase();
+    var parts=[],regex=/([+-]?)(\d*)d(\d+)|([+-]?\d+)/g,m,any=false;
+    while((m=regex.exec(str))!==null){
+      if(m[3]){any=true;var s=m[1]==='-'?-1:1,c=parseInt(m[2]||'1'),f=parseInt(m[3]);
+        if(c<1||c>100)throw new Error('Dados: 1-100');if(f<2||f>1000)throw new Error('Faces: 2-1000');
+        parts.push({type:'dice',count:c,faces:f,sign:s});
+      }else if(m[4])parts.push({type:'mod',value:parseInt(m[4])});
+    }
+    if(!any)throw new Error('Use: 2d6, 1d20+5…');return parts;
+  }
+  function rollDice(parts){
+    var total=0,rolls=[];
+    for(var i=0;i<parts.length;i++){var p=parts[i];
+      if(p.type==='dice'){var dr=[];
+        for(var j=0;j<p.count;j++)dr.push(Math.floor(Math.random()*p.faces)+1);
+        total+=dr.reduce(function(a,b){return a+b;},0)*p.sign;
+        rolls.push({label:(p.sign===-1?'-':'')+p.count+'d'+p.faces,values:dr,sign:p.sign});
+      }else{total+=p.value;rolls.push({label:(p.value>=0?'+':'')+p.value,values:[],sign:1});}
+    }
+    return {total:total,rolls:rolls};
+  }
+  function fmtRolls(rolls){
+    return rolls.map(function(r){return r.values.length?r.label+' ['+r.values.join(', ')+']':r.label;}).join(' ');
+  }
+
+  function doRoll(){
+    var notation=input.value.trim(); if(!notation){input.focus();return;}
+    try{
+      var parts=parseDice(notation),result=rollDice(parts),detail=fmtRolls(result.rolls);
+      rollBtn.classList.remove('rolling');void rollBtn.offsetWidth;rollBtn.classList.add('rolling');
+      resultArea.innerHTML='<div class="result-total">'+result.total+'</div><div class="result-detail">'+detail+'</div>';
+      var te=resultArea.querySelector('.result-total');void te.offsetWidth;te.classList.add('show');
+      addHistory(notation,detail,result.total);
+      // Auto-copy
+      if (autoCopy) {
+        copyText(formatForChat(notation,detail,result.total));
+      }
+    }catch(err){resultArea.innerHTML='<div class="error">'+err.message+'</div>';}
+  }
+
+  // === Init ===
+  renderSavedHistory(); input.focus();
+})();
+</script>
+</body>
+</html>
